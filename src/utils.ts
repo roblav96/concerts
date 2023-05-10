@@ -1,12 +1,20 @@
 import * as _ from 'npm:radash'
 import * as async from 'https://deno.land/std/async/mod.ts'
 
-export function minify(value: string) {
-	return _.trim(value.replace(/[^a-z\d]/gi, '').toLowerCase())
+export function trim(value = '') {
+	return _.trim(value).replace(/\s+/g, ' ')
 }
 
-export function clean(value: string) {
-	return _.trim(value.replace(/[^\x01-\xFF]/gi, ' '))
+export function minify(value = '') {
+	return trim(value.replace(/[^a-z\d]/gi, '').toLowerCase())
+}
+
+export function slugify(value = '') {
+	return trim(value.replace(/[^a-z\d]/gi, ' ').toLowerCase())
+}
+
+export function clean(value = '') {
+	return trim(value.replace(/[^\x01-\xFF]/gi, ' '))
 }
 
 export function irregular(ms: number) {

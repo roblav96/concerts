@@ -18,7 +18,3 @@ watch main:
 	export NODE_ENV="development" && \
 		watchexec --clear --restart --shell=bash --watch=src --exts=ts \
 		-- 'echo "█ " && echo && just run {{main}}'
-
-serve:
-	just run src/mod.ts & \
-		miniserve --verbose --header 'Cache-Control: no-cache, no-store, must-revalidate' --interfaces=127.0.0.1 --port=14023 dist
