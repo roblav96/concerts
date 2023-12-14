@@ -21,3 +21,7 @@ export function irregular(ms: number) {
 	let [min, max] = [ms * Math.E * 0.1, ms]
 	return Math.ceil(Math.floor(Math.random() * (max - min + 1)) + min)
 }
+
+export function parseInt(value: string) {
+	return Number.parseInt(value.replace(/[^\d]/g, ''))
+}

@@ -1,0 +1,37 @@
+version: "3"
+silent: true
+
+env:
+  NODE_ENV: development
+
+vars:
+  MAIN: src/mod.ts
+
+tasks:
+  #
+
+  install:
+    desc: Download all Deno dependencies into cache
+    cmd: fd -tf -e ts -E '*.d.ts' -X deno cache --unstable --no-check --reload
+
+  run:
+    desc: Run and serve the application
+    ignore_error: true
+    deps: [cache, check]
+    cmds:
+      - deno run --unstable --allow-all --no-check {{.MAIN}}
+
+  watch:
+    desc: Watch for file changes and restart process automatically
+    cmd: watchexec --quiet --clear --restart --shell=bash --watch=src --exts=ts -- 'echo "█ " && echo && task run'
+
+  #
+
+  cache:
+    internal: true
+    ignore_error: true
+    cmd: fd -tf -e ts -E '*.d.ts' -X deno cache --unstable --no-check --quiet
+  check:
+    internal: true
+    ignore_error: true
+    cmd: deno check --unstable --quiet {{.MAIN}} || echo

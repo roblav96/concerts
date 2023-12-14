@@ -1,6 +1,18 @@
-export const followings = (
-	JSON.parse(Deno.readTextFileSync('./data/soundcloud.json')) as SoundCloudFollowing[]
-).filter((v) => v.verified)
+export async function followings() {
+	const items = [] as SoundCloudFollowing[]
+	let next = `https://api-v2.soundcloud.com/users/32495695/followings?limit=999`
+	while (next) {
+		const res = (await (
+			await fetch(next, {
+				headers: { Authorization: Deno.env.get('SOUNDCLOUD_AUTHORIZATION')! },
+			})
+		).json()) as SoundCloudApiResponse<SoundCloudFollowing>
+		items.push(...res.collection)
+		next = res.next_href
+	}
+	// console.log('items ->', items)
+	return items
+}
 
 export interface SoundCloudFollowing {
 	avatar_url: string
@@ -56,4 +68,10 @@ export interface SoundCloudFollowing {
 			visual_url: string
 		}[]
 	}
+}
+
+interface SoundCloudApiResponse<T> {
+	collection: T[]
+	next_href: string
+	query_urn: string
 }
