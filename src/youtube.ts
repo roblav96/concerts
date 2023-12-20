@@ -1,10 +1,10 @@
 import * as _ from 'npm:radash'
-import * as fs from 'https://deno.land/std/fs/mod.ts'
 import * as path from 'https://deno.land/std/path/mod.ts'
 import * as utils from './utils.ts'
 import cache_dir from 'https://deno.land/x/dir/cache_dir/mod.ts'
 import dayjs from 'npm:dayjs'
 import objectSupport from 'npm:dayjs/plugin/objectSupport.js'
+import type { AsyncReturnType, IterableElement } from 'npm:type-fest'
 import { Innertube, UniversalCache, YTNodes } from 'https://deno.land/x/youtubei/deno.ts'
 
 dayjs.extend(objectSupport)
@@ -46,7 +46,7 @@ export async function search(artist: string) {
 	artist = utils.slugify(artist)
 	const results = ((search.results ?? []) as YTNodes.Video[]).filter((v) => {
 		const seconds = v.duration?.seconds
-		if (!Number.isFinite(seconds) || seconds * 1000 < new Date(0).setMinutes(30)) {
+		if (!Number.isFinite(seconds) || seconds < new Date(0).setMinutes(30) / 1000) {
 			return false
 		}
 		if (!utils.slugify(v.title.text).includes(artist)) {
@@ -54,21 +54,27 @@ export async function search(artist: string) {
 		}
 		return true
 	})
-	// results.forEach((v) => console.log('result ->', v))
+	results.forEach((v) => console.log('result ->', v))
 	// return results
 	return results.map((v) => {
-		const [int, unit] = v.published.text!.split(' ')
+		let published = new Date(NaN)
+		if (v.published.text) {
+			const [int, unit] = v.published.text!.split(' ')
+			published = dayjs()
+				.subtract({ [unit]: Number.parseInt(int) })
+				.toDate()
+		}
+		const rich_thumbnail = ((v.rich_thumbnail as any as any[]) ?? [])[0]?.url
 		return {
 			id: v.id,
+			url: `https://youtu.be/${v.id}`,
 			title: v.title.text!,
 			description: v.description,
 			duration: v.duration.seconds * 1000,
 			thumbnail: v.best_thumbnail?.url,
-			rich_thumbnail: ((v.rich_thumbnail as any as any[]) ?? [])[0]?.url,
-			views: utils.parseInt(v.view_count.text!.split(' ')[0]),
-			published: dayjs()
-				.subtract({ [unit]: Number.parseInt(int) })
-				.toDate(),
+			rich_thumbnail: rich_thumbnail as string | undefined,
+			views: utils.parseInt((v.view_count.text ?? '').split(' ')[0]),
+			published,
 			author: {
 				id: v.author.id,
 				name: v.author.name,
@@ -78,6 +84,7 @@ export async function search(artist: string) {
 		}
 	})
 }
+export type YoutubeSearchResult = IterableElement<AsyncReturnType<typeof search>>
 
 // console.log('playlist ->', playlist)
 
