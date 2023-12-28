@@ -42,6 +42,7 @@ async function toBase64s(thumbnail = '', dirpath: string) {
 		}
 		const qfile = await Deno.open(filepath, { write: true, create: true })
 		await res.body.pipeTo(qfile.writable)
+		await _.sleep(100)
 
 		const { success, stdout, stderr } = await new Deno.Command('webpmux', {
 			args: ['-info', filepath],

@@ -1,26 +1,28 @@
 import * as _ from 'npm:radash'
 import * as webp from './webp.ts'
-import pMap from 'npm:p-map'
-import { Ollama } from 'npm:langchain/llms/ollama'
+import type { AsyncReturnType } from 'npm:type-fest'
 import { YoutubeSearchResult } from './youtube.ts'
 
 export async function isConcert(result: YoutubeSearchResult) {
+	const isConcert = {
+		thumbnail: undefined as boolean | undefined,
+		rich_thumbnail: undefined as boolean | undefined,
+	}
 	const base64s = await webp.extractBase64s(result)
-	if (base64s.rich_thumbnail.length > 0) {
-		const images = _.cluster(
-			_.shuffle(base64s.rich_thumbnail),
-			Math.ceil(base64s.rich_thumbnail.length / 2),
-		)[0]
-		const answers = await _.map(images, async (image) => check(image))
-		console.log('answers ->', answers)
-		const yeses = answers.filter((v) => v.toLowerCase().includes('yes'))
-		return yeses.length / answers.length >= 0.75
-	}
 	if (base64s.thumbnail.length > 0) {
-		return (await check(base64s.thumbnail[0])).toLowerCase().includes('yes')
+		isConcert.thumbnail = (await check(base64s.thumbnail[0])).toLowerCase().includes('yes')
 	}
-	return false
+	if (base64s.rich_thumbnail.length > 0) {
+		let images = _.shuffle(base64s.rich_thumbnail)
+		images = images.slice(0, Math.ceil(base64s.rich_thumbnail.length / 2))
+		const answers = await _.map(images, async (image) => check(image))
+		// console.log('answers ->', answers)
+		const yeses = answers.filter((v) => v.toLowerCase().includes('yes'))
+		isConcert.rich_thumbnail = yeses.length / answers.length >= 0.75
+	}
+	return isConcert
 }
+export type isConcertResult = AsyncReturnType<typeof isConcert>
 
 async function check(image: string) {
 	const res = await fetch('http://localhost:11434/api/generate', {

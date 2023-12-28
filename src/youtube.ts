@@ -29,9 +29,23 @@ await yt.session.oauth.cacheCredentials()
 
 export { yt }
 
-export async function getPlaylist() {
-	const playlist = await yt.getPlaylist('PLsG-QjVBPxJtazkSMGvf8geIFJsP2ky2A')
-	return playlist
+export async function getPlaylistVideos() {
+	const videos = [] as YTNodes.PlaylistVideo[]
+	let playlist = await yt.getPlaylist('PLsG-QjVBPxJtazkSMGvf8geIFJsP2ky2A')
+	// let playlist = await yt.getPlaylist('PLsG-QjVBPxJtY7iTS3AEOLw4DdRbkkywB')
+	// let playlist = await yt.getPlaylist('PLsG-QjVBPxJuQ98Nvo_wDAsNwxppDBQTQ')
+	while (playlist.videos.length > 0) {
+		videos.push(...(playlist.videos as YTNodes.PlaylistVideo[]))
+		try {
+			playlist = await playlist.getContinuation()
+		} catch {
+			break
+		}
+	}
+	return videos
+}
+export async function addPlaylistVideo(id: string) {
+	await yt.playlist.addVideos('PLsG-QjVBPxJtazkSMGvf8geIFJsP2ky2A', [id])
 }
 
 export async function search(artist: string) {
@@ -41,21 +55,33 @@ export async function search(artist: string) {
 	const search = await yt.search(artist, {
 		type: 'video',
 		sort_by: 'upload_date',
-		duration: 'long',
+		// duration: 'long',
 	})
-	artist = utils.slugify(artist)
 	const results = ((search.results ?? []) as YTNodes.Video[]).filter((v) => {
 		const seconds = v.duration?.seconds
 		if (!Number.isFinite(seconds) || seconds < new Date(0).setMinutes(30) / 1000) {
 			return false
 		}
-		if (!utils.slugify(v.title.text).includes(artist)) {
+		if (!utils.slugify(v.title.text).includes(utils.slugify(artist))) {
 			return false
 		}
 		return true
 	})
-	results.forEach((v) => console.log('result ->', v))
-	// return results
+	// console.log('results ->', JSON.parse(JSON.stringify(results)))
+	// results.forEach((v) =>
+	// 	console.log(
+	// 		'result ->',
+	// 		_.omit(v, [
+	// 			'author',
+	// 			'badges',
+	// 			'endpoint',
+	// 			'expandable_metadata',
+	// 			'menu',
+	// 			'snippets',
+	// 			'thumbnail_overlays',
+	// 		]),
+	// 	),
+	// )
 	return results.map((v) => {
 		let published = new Date(NaN)
 		if (v.published.text) {
